@@ -9,8 +9,6 @@ const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
 const DEFAULT_SETTINGS = {
   skipTools: ['Read', 'Glob', 'Grep', 'TodoWrite', 'AskUserQuestion'],
   captureTools: ['Edit', 'Write', 'Bash', 'Task'],
-  maxContextMemories: 10,
-  maxProjectMemories: 20,
   maxProfileItems: 5,
   debug: false,
   injectProfile: true,

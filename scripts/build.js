@@ -13,6 +13,7 @@ const hooks = [
   'observation-hook',
   'summary-hook',
   'search-memory',
+  'add-memory',
 ];
 
 async function build() {

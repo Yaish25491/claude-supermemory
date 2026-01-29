@@ -1,6 +1,6 @@
 # Claude-Supermemory
 
-<img width="1386" height="258" alt="Screenshot 2026-01-28 at 11 34 13 PM" src="https://github.com/user-attachments/assets/a692791a-a054-495a-ab53-45f1071ff26f" />
+<img width="1386" height="258" alt="Screenshot 2026-01-28 at 11 34 13 PM" src="https://github.com/user-attachments/assets/a692791a-a054-495a-ab53-45f1071ff26f" />
 
 A Claude Code plugin that gives your AI persistent memory across sessions using [Supermemory](https://supermemory.ai).
 Your agent remembers what you worked on - across sessions, across projects.
@@ -10,6 +10,7 @@ Your agent remembers what you worked on - across sessions, across projects.
 
 - **Context Injection**: On session start, relevant memories are automatically injected into Claude's context
 - **Automatic Capture**: Conversation turns are captured and stored for future context
+- **Codebase Indexing**: Index your project's architecture, patterns, and conventions
 
 ## Installation
 
@@ -36,35 +37,40 @@ Get your API key at [console.supermemory.ai](https://console.supermemory.ai).
 The plugin fetches relevant memories from Supermemory and injects them into Claude's context:
 
 ```
-<supermemory-context project="myproject">
+<supermemory-context>
+The following is recalled context about the user...
 
-## User Preferences
+## User Profile (Persistent)
 - Prefers TypeScript over JavaScript
 - Uses Bun as package manager
 
-## Project Knowledge
-- Authentication uses JWT tokens
-- API routes are in src/routes/
+## Recent Context
+- Working on authentication flow
 
 </supermemory-context>
 ```
 
 ### During Session
 
-Tool usage is automatically captured:
+Conversation turns are automatically captured on each stop and stored for future context.
 
-| Tool  | What's Captured                                     |
-| ----- | --------------------------------------------------- |
-| Edit  | `Edited src/auth.ts: "old code..." → "new code..."` |
-| Write | `Created src/new-file.ts (500 chars)`               |
-| Bash  | `Ran: npm test (SUCCESS/FAILED)`                    |
-| Task  | `Spawned agent: explore codebase`                   |
+### Skills
+
+**super-search**: When you ask about past work, previous sessions, or want to recall information, the agent automatically searches your memories.
 
 ## Commands
 
+### /claude-supermemory:index
+
+Index your codebase into Supermemory. Explores project structure, architecture, conventions, and key files.
+
+```
+/claude-supermemory:index
+```
+
 ### /claude-supermemory:logout
 
-Log out from Supermemory and clear saved credentials. Use this to re-authenticate or switch accounts.
+Log out from Supermemory and clear saved credentials.
 
 ```
 /claude-supermemory:logout
@@ -91,8 +97,7 @@ Create `~/.supermemory-claude/settings.json`:
 {
   "skipTools": ["Read", "Glob", "Grep", "TodoWrite"],
   "captureTools": ["Edit", "Write", "Bash", "Task"],
-  "maxContextMemories": 10,
-  "maxProjectMemories": 20,
+  "maxProfileItems": 5,
   "debug": false
 }
 ```
