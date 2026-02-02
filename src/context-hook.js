@@ -1,8 +1,7 @@
-const { SupermemoryClient } = require('./lib/supermemory-client');
+const { StorageClient } = require('./lib/storage-client');
 const { getContainerTag, getProjectName } = require('./lib/container-tag');
-const { loadSettings, getApiKey, debugLog } = require('./lib/settings');
+const { loadSettings, debugLog } = require('./lib/settings');
 const { readStdin, writeOutput } = require('./lib/stdin');
-const { startAuthFlow } = require('./lib/auth');
 const { formatContext } = require('./lib/format-context');
 
 async function main() {
@@ -16,31 +15,14 @@ async function main() {
 
     debugLog(settings, 'SessionStart', { cwd, containerTag, projectName });
 
-    let apiKey;
-    try {
-      apiKey = getApiKey(settings);
-    } catch {
-      try {
-        debugLog(settings, 'No API key found, starting browser auth flow');
-        apiKey = await startAuthFlow();
-        debugLog(settings, 'Auth flow completed successfully');
-      } catch (authErr) {
-        const isTimeout = authErr.message === 'AUTH_TIMEOUT';
-        writeOutput({
-          hookSpecificOutput: {
-            hookEventName: 'SessionStart',
-            additionalContext: `<supermemory-status>
-${isTimeout ? 'Authentication timed out. Please complete login in the browser window.' : 'Authentication failed.'}
-If the browser did not open, visit: https://console.supermemory.ai/auth/connect
-Or set SUPERMEMORY_CC_API_KEY environment variable manually.
-</supermemory-status>`,
-          },
-        });
-        return;
-      }
+    const client = new StorageClient();
+
+    // Sync from GitHub (non-blocking, best effort)
+    const syncResult = await client.syncFromGitHub().catch(() => ({ success: false }));
+    if (!syncResult.success) {
+      debugLog(settings, 'GitHub sync unavailable, working offline');
     }
 
-    const client = new SupermemoryClient(apiKey);
     const profileResult = await client
       .getProfile(containerTag, projectName)
       .catch(() => null);
@@ -49,7 +31,7 @@ Or set SUPERMEMORY_CC_API_KEY environment variable manually.
       profileResult,
       true,
       false,
-      settings.maxProfileItems,
+      settings.maxProfileItems || 5
     );
 
     if (!additionalContext) {
@@ -59,35 +41,44 @@ Or set SUPERMEMORY_CC_API_KEY environment variable manually.
           additionalContext: `<supermemory-context>
 No previous memories found for this project.
 Memories will be saved as you work.
-</supermemory-context>`,
-        },
+${syncResult.success ? '' : '⚠ GitHub sync unavailable - working offline'}
+</supermemory-context>`
+        }
       });
+      client.close();
       return;
     }
 
     debugLog(settings, 'Context generated', {
-      length: additionalContext.length,
+      length: additionalContext.length
     });
 
+    const statusNote = syncResult.success ? '' : '\n⚠ GitHub sync unavailable - working offline';
+
     writeOutput({
-      hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext },
+      hookSpecificOutput: {
+        hookEventName: 'SessionStart',
+        additionalContext: additionalContext + statusNote
+      }
     });
+
+    client.close();
   } catch (err) {
     debugLog(settings, 'Error', { error: err.message });
-    console.error(`Supermemory: ${err.message}`);
+    console.error(`Claude Memory: ${err.message}`);
     writeOutput({
       hookSpecificOutput: {
         hookEventName: 'SessionStart',
         additionalContext: `<supermemory-status>
 Failed to load memories: ${err.message}
 Session will continue without memory context.
-</supermemory-status>`,
-      },
+</supermemory-status>`
+      }
     });
   }
 }
 
 main().catch((err) => {
-  console.error(`Supermemory fatal: ${err.message}`);
+  console.error(`Claude Memory fatal: ${err.message}`);
   process.exit(1);
 });
