@@ -201,6 +201,60 @@ class GitHubSync {
       return { success: false, conflict: false, error: err.message };
     }
   }
+
+  importMemories() {
+    const memoriesDir = path.join(this.syncDir, 'memories');
+    if (!fs.existsSync(memoriesDir)) {
+      return [];
+    }
+
+    const memories = [];
+
+    const readDir = (dir) => {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+
+        if (entry.isDirectory()) {
+          readDir(fullPath);
+        } else if (entry.name.endsWith('.json')) {
+          try {
+            const data = JSON.parse(fs.readFileSync(fullPath, 'utf8'));
+            memories.push({
+              id: data.id,
+              content: data.content,
+              container_tag: data.containerTag,
+              metadata: JSON.stringify(data.metadata || {}),
+              created_at: data.createdAt,
+              updated_at: data.updatedAt,
+              sync_status: 'synced',
+              synced_at: Date.now()
+            });
+          } catch (err) {
+            console.error(`Failed to parse ${fullPath}:`, err.message);
+          }
+        }
+      }
+    };
+
+    readDir(memoriesDir);
+    return memories;
+  }
+
+  importProfiles() {
+    const profileFile = path.join(this.syncDir, 'profiles', 'user-preferences.json');
+    if (!fs.existsSync(profileFile)) {
+      return { static: [], dynamic: [] };
+    }
+
+    try {
+      return JSON.parse(fs.readFileSync(profileFile, 'utf8'));
+    } catch (err) {
+      console.error('Failed to parse profiles:', err.message);
+      return { static: [], dynamic: [] };
+    }
+  }
 }
 
 module.exports = { GitHubSync };
