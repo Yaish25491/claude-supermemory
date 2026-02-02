@@ -150,6 +150,57 @@ class GitHubSync {
     fs.writeFileSync(filepath, JSON.stringify(profiles, null, 2));
     return filepath;
   }
+
+  async syncToGitHub(memories, profiles = null) {
+    try {
+      await this.ensureRepo();
+
+      // Export memories to JSON
+      const files = this.exportMemories(memories);
+
+      // Export profiles if provided
+      if (profiles) {
+        const profileFile = this.exportProfiles(profiles);
+        files.push(profileFile);
+      }
+
+      if (files.length === 0) {
+        return { success: true, synced: 0 };
+      }
+
+      // Git add
+      for (const file of files) {
+        const relativePath = path.relative(this.syncDir, file);
+        await this.git.add(relativePath);
+      }
+
+      // Git commit
+      const containerTags = [...new Set(memories.map(m => m.container_tag))];
+      const message = `Session memories: ${containerTags.join(', ')} (${memories.length} new)`;
+      await this.git.commit(message);
+
+      // Git push
+      await this.git.push('origin', 'main');
+
+      return { success: true, synced: memories.length };
+    } catch (err) {
+      console.error('GitHub sync failed:', err.message);
+      return { success: false, error: err.message };
+    }
+  }
+
+  async pullFromGitHub() {
+    try {
+      await this.ensureRepo();
+      await this.git.pull('origin', 'main');
+      return { success: true };
+    } catch (err) {
+      if (err.message.includes('conflict')) {
+        return { success: false, conflict: true, error: err.message };
+      }
+      return { success: false, conflict: false, error: err.message };
+    }
+  }
 }
 
 module.exports = { GitHubSync };
