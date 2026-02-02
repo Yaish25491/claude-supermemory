@@ -8,6 +8,11 @@ const DEFAULT_DB_PATH = path.join(DEFAULT_DB_DIR, 'memories.db');
 
 class SqliteManager {
   constructor(dbPath = DEFAULT_DB_PATH) {
+    // Handle null/undefined explicitly
+    if (!dbPath) {
+      dbPath = DEFAULT_DB_PATH;
+    }
+
     // Ensure directory exists
     const dir = path.dirname(dbPath);
     if (!fs.existsSync(dir)) {
