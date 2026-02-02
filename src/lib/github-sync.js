@@ -13,7 +13,14 @@ class GitHubSync {
     this.repoOwner = repoOwner;
     this.repoName = repoName;
     this.syncDir = SYNC_DIR;
-    this.git = simpleGit(this.syncDir);
+    this._git = null;
+  }
+
+  get git() {
+    if (!this._git) {
+      this._git = simpleGit(this.syncDir);
+    }
+    return this._git;
   }
 
   async ensureRepo() {
@@ -90,6 +97,58 @@ class GitHubSync {
     // Configure git user
     await this.git.addConfig('user.name', 'Claude Code');
     await this.git.addConfig('user.email', 'noreply@anthropic.com');
+  }
+
+  exportMemory(memory) {
+    const date = new Date(memory.created_at);
+    const yearMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const day = String(date.getDate()).padStart(2, '0');
+
+    const memoryDir = path.join(
+      this.syncDir,
+      'memories',
+      memory.container_tag,
+      yearMonth
+    );
+
+    if (!fs.existsSync(memoryDir)) {
+      fs.mkdirSync(memoryDir, { recursive: true });
+    }
+
+    const filename = `${day}-${memory.id}.json`;
+    const filepath = path.join(memoryDir, filename);
+
+    const data = {
+      id: memory.id,
+      content: memory.content,
+      containerTag: memory.container_tag,
+      metadata: typeof memory.metadata === 'string' ? JSON.parse(memory.metadata) : memory.metadata,
+      createdAt: memory.created_at,
+      updatedAt: memory.updated_at
+    };
+
+    fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
+    return filepath;
+  }
+
+  exportMemories(memories) {
+    const files = [];
+    for (const memory of memories) {
+      const filepath = this.exportMemory(memory);
+      files.push(filepath);
+    }
+    return files;
+  }
+
+  exportProfiles(profiles) {
+    const profileDir = path.join(this.syncDir, 'profiles');
+    if (!fs.existsSync(profileDir)) {
+      fs.mkdirSync(profileDir, { recursive: true });
+    }
+
+    const filepath = path.join(profileDir, 'user-preferences.json');
+    fs.writeFileSync(filepath, JSON.stringify(profiles, null, 2));
+    return filepath;
   }
 }
 
