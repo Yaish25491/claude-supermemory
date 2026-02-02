@@ -148,6 +148,68 @@ class SqliteManager {
     stmt.run(now, ...ids);
   }
 
+  searchMemories(query, containerTag = null, limit = 10) {
+    let sql = `
+      SELECT m.*, rank * -1 as relevance_score
+      FROM memories_fts f
+      JOIN memories m ON f.rowid = m.rowid
+      WHERE memories_fts MATCH ?
+    `;
+    const params = [query];
+
+    if (containerTag) {
+      sql += ' AND m.container_tag = ?';
+      params.push(containerTag);
+    }
+
+    sql += ' ORDER BY rank LIMIT ?';
+    params.push(limit);
+
+    const stmt = this.db.prepare(sql);
+    const rows = stmt.all(...params);
+    return rows.map(row => {
+      if (row.metadata) row.metadata = JSON.parse(row.metadata);
+      return row;
+    });
+  }
+
+  getContextMemories(containerTag, projectName, limit = 10) {
+    // Hybrid: recent + relevant memories for context injection
+    const recentStmt = this.db.prepare(`
+      SELECT *, 1.0 as score FROM memories
+      WHERE container_tag = ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `);
+    const recent = recentStmt.all(containerTag, Math.floor(limit / 2));
+
+    // FTS search for project-relevant
+    const searchStmt = this.db.prepare(`
+      SELECT m.*, rank * -1 as score
+      FROM memories_fts f
+      JOIN memories m ON f.rowid = m.rowid
+      WHERE memories_fts MATCH ? AND m.container_tag = ?
+      ORDER BY rank
+      LIMIT ?
+    `);
+    const relevant = searchStmt.all(projectName, containerTag, Math.floor(limit / 2));
+
+    // Combine and dedupe
+    const seen = new Set(recent.map(r => r.id));
+    const combined = [...recent];
+    for (const mem of relevant) {
+      if (!seen.has(mem.id)) {
+        combined.push(mem);
+        seen.add(mem.id);
+      }
+    }
+
+    return combined.slice(0, limit).map(row => {
+      if (row.metadata) row.metadata = JSON.parse(row.metadata);
+      return row;
+    });
+  }
+
   close() {
     this.db.close();
   }
