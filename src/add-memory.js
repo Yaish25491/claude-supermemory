@@ -1,34 +1,22 @@
-const { SupermemoryClient } = require('./lib/supermemory-client');
+const { StorageClient } = require('./lib/storage-client');
 const { getContainerTag, getProjectName } = require('./lib/container-tag');
-const { loadSettings, getApiKey } = require('./lib/settings');
+const { loadSettings } = require('./lib/settings');
 
 async function main() {
   const content = process.argv.slice(2).join(' ');
 
   if (!content || !content.trim()) {
-    console.log(
-      'No content provided. Usage: node add-memory.cjs "content to save"',
-    );
+    console.log('No content provided. Usage: node add-memory.cjs "content to save"');
     return;
   }
 
   const settings = loadSettings();
-
-  let apiKey;
-  try {
-    apiKey = getApiKey(settings);
-  } catch {
-    console.log('Supermemory API key not configured.');
-    console.log('Set SUPERMEMORY_CC_API_KEY environment variable.');
-    return;
-  }
-
   const cwd = process.cwd();
   const containerTag = getContainerTag(cwd);
   const projectName = getProjectName(cwd);
 
   try {
-    const client = new SupermemoryClient(apiKey, containerTag);
+    const client = new StorageClient();
     const result = await client.addMemory(content, containerTag, {
       type: 'manual',
       project: projectName,
@@ -37,6 +25,8 @@ async function main() {
 
     console.log(`Memory saved to project: ${projectName}`);
     console.log(`ID: ${result.id}`);
+
+    client.close();
   } catch (err) {
     console.log(`Error saving memory: ${err.message}`);
   }
