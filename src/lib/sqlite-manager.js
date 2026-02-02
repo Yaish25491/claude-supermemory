@@ -75,6 +75,79 @@ class SqliteManager {
     `);
   }
 
+  addMemory(id, content, containerTag, metadata = {}) {
+    const now = Date.now();
+    const stmt = this.db.prepare(`
+      INSERT INTO memories (id, content, container_tag, metadata, created_at, updated_at, sync_status)
+      VALUES (?, ?, ?, ?, ?, ?, 'pending')
+    `);
+    stmt.run(id, content, containerTag, JSON.stringify(metadata), now, now);
+    return { id, createdAt: now };
+  }
+
+  getMemory(id) {
+    const stmt = this.db.prepare('SELECT * FROM memories WHERE id = ?');
+    const row = stmt.get(id);
+    if (row && row.metadata) {
+      row.metadata = JSON.parse(row.metadata);
+    }
+    return row;
+  }
+
+  updateMemory(id, content, metadata = null) {
+    const now = Date.now();
+    const updates = ['content = ?', 'updated_at = ?', 'sync_status = ?'];
+    const params = [content, now, 'pending'];
+
+    if (metadata !== null) {
+      updates.push('metadata = ?');
+      params.push(JSON.stringify(metadata));
+    }
+
+    params.push(id);
+    const stmt = this.db.prepare(`UPDATE memories SET ${updates.join(', ')} WHERE id = ?`);
+    stmt.run(...params);
+  }
+
+  deleteMemory(id) {
+    const stmt = this.db.prepare('DELETE FROM memories WHERE id = ?');
+    stmt.run(id);
+  }
+
+  listMemories(containerTag, limit = 20) {
+    const stmt = this.db.prepare(`
+      SELECT * FROM memories
+      WHERE container_tag = ?
+      ORDER BY created_at DESC
+      LIMIT ?
+    `);
+    const rows = stmt.all(containerTag, limit);
+    return rows.map(row => {
+      if (row.metadata) row.metadata = JSON.parse(row.metadata);
+      return row;
+    });
+  }
+
+  getPendingSync() {
+    const stmt = this.db.prepare(`SELECT * FROM memories WHERE sync_status = 'pending'`);
+    const rows = stmt.all();
+    return rows.map(row => {
+      if (row.metadata) row.metadata = JSON.parse(row.metadata);
+      return row;
+    });
+  }
+
+  markSynced(ids) {
+    const now = Date.now();
+    const placeholders = ids.map(() => '?').join(',');
+    const stmt = this.db.prepare(`
+      UPDATE memories
+      SET sync_status = 'synced', synced_at = ?
+      WHERE id IN (${placeholders})
+    `);
+    stmt.run(now, ...ids);
+  }
+
   close() {
     this.db.close();
   }
