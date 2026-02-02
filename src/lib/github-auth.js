@@ -57,6 +57,102 @@ class GitHubAuth {
            process.env.CLAUDE_MEMORY_GITHUB_TOKEN ||
            fs.existsSync(TOKEN_FILE);
   }
+
+  async initiateDeviceFlow() {
+    const https = require('https');
+
+    return new Promise((resolve, reject) => {
+      const data = JSON.stringify({
+        client_id: 'Ov23liXXXXXXXXXXXXXX', // TODO: Register GitHub OAuth App
+        scope: 'repo'
+      });
+
+      const options = {
+        hostname: 'github.com',
+        port: 443,
+        path: '/login/device/code',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': data.length,
+          'Accept': 'application/json'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => resolve(JSON.parse(body)));
+      });
+
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+  }
+
+  async pollForToken(deviceCode, interval = 5) {
+    const https = require('https');
+
+    const poll = () => new Promise((resolve, reject) => {
+      const data = JSON.stringify({
+        client_id: 'Ov23liXXXXXXXXXXXXXX', // TODO: Same as above
+        device_code: deviceCode,
+        grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
+      });
+
+      const options = {
+        hostname: 'github.com',
+        port: 443,
+        path: '/login/oauth/access_token',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': data.length,
+          'Accept': 'application/json'
+        }
+      };
+
+      const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          const result = JSON.parse(body);
+          if (result.access_token) {
+            resolve(result.access_token);
+          } else if (result.error === 'authorization_pending') {
+            resolve(null);
+          } else {
+            reject(new Error(result.error || 'Unknown error'));
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.write(data);
+      req.end();
+    });
+
+    // Poll up to 10 minutes
+    for (let i = 0; i < 120; i++) {
+      const token = await poll();
+      if (token) return token;
+      await new Promise(resolve => setTimeout(resolve, interval * 1000));
+    }
+
+    throw new Error('Device flow timed out');
+  }
+
+  async startDeviceFlow() {
+    const device = await this.initiateDeviceFlow();
+    console.log(`\nGitHub Authentication Required:`);
+    console.log(`Visit: ${device.verification_uri}`);
+    console.log(`Enter code: ${device.user_code}\n`);
+
+    const token = await this.pollForToken(device.device_code, device.interval);
+    this.saveToken(token);
+    return token;
+  }
 }
 
 module.exports = { GitHubAuth };
