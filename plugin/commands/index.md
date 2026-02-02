@@ -1,11 +1,12 @@
 ---
-description: Index codebase into Supermemory for persistent context
+command-name: claude-memory:index
+description: Index codebase into Claude Memory for persistent context
 allowed-tools: ["Read", "Glob", "Grep", "Bash", "Task"]
 ---
 
 # Codebase Indexing
 
-Explore this codebase deeply and compile findings into Supermemory.
+Explore this codebase deeply and compile findings into Claude Memory.
 
 ## Phase 1: Project Overview
 
@@ -45,7 +46,7 @@ Read and note:
 
 Gather: where important logic lives
 
-## Final Step: Save to Supermemory
+## Final Step: Save to Claude Memory
 
 After exploring all phases, compile everything into one comprehensive summary and save:
 
