@@ -210,6 +210,43 @@ class SqliteManager {
     });
   }
 
+  addProfileFact(id, containerTag, fact, type = 'static') {
+    const now = Date.now();
+    const stmt = this.db.prepare(`
+      INSERT OR REPLACE INTO profiles (id, container_tag, fact, type, created_at)
+      VALUES (?, ?, ?, ?, ?)
+    `);
+    stmt.run(id, containerTag, fact, type, now);
+  }
+
+  getProfile(containerTag, maxItems = 5) {
+    const staticStmt = this.db.prepare(`
+      SELECT fact FROM profiles
+      WHERE container_tag = ? AND type = 'static'
+      ORDER BY created_at DESC
+      LIMIT ?
+    `);
+    const staticFacts = staticStmt.all(containerTag, maxItems);
+
+    const dynamicStmt = this.db.prepare(`
+      SELECT fact FROM profiles
+      WHERE container_tag = ? AND type = 'dynamic'
+      ORDER BY created_at DESC
+      LIMIT ?
+    `);
+    const dynamicFacts = dynamicStmt.all(containerTag, maxItems);
+
+    return {
+      static: staticFacts.map(r => r.fact),
+      dynamic: dynamicFacts.map(r => r.fact)
+    };
+  }
+
+  deleteProfileFact(id) {
+    const stmt = this.db.prepare('DELETE FROM profiles WHERE id = ?');
+    stmt.run(id);
+  }
+
   close() {
     this.db.close();
   }
