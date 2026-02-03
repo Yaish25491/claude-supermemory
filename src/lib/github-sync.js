@@ -1,8 +1,8 @@
 const simpleGit = require('simple-git');
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const { execSync } = require('node:child_process');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
 
 const SYNC_DIR = path.join(os.homedir(), '.claude-memory', 'repo');
 const DEFAULT_REPO_NAME = 'claude-memory-storage';
@@ -25,14 +25,21 @@ class GitHubSync {
 
   async ensureRepo() {
     // Check if repo directory exists and is git repo
-    if (fs.existsSync(this.syncDir) && fs.existsSync(path.join(this.syncDir, '.git'))) {
+    if (
+      fs.existsSync(this.syncDir) &&
+      fs.existsSync(path.join(this.syncDir, '.git'))
+    ) {
       return true;
     }
 
     // Get authenticated user
     if (!this.repoOwner) {
       const token = await this.auth.getToken();
-      const user = JSON.parse(execSync(`gh api user --header "Authorization: Bearer ${token}"`, { encoding: 'utf8' }));
+      const user = JSON.parse(
+        execSync(`gh api user --header "Authorization: Bearer ${token}"`, {
+          encoding: 'utf8',
+        }),
+      );
       this.repoOwner = user.login;
     }
 
@@ -53,7 +60,10 @@ class GitHubSync {
   async checkRepoExists() {
     try {
       const token = await this.auth.getToken();
-      execSync(`gh api repos/${this.repoOwner}/${this.repoName} --header "Authorization: Bearer ${token}"`, { stdio: 'pipe' });
+      execSync(
+        `gh api repos/${this.repoOwner}/${this.repoName} --header "Authorization: Bearer ${token}"`,
+        { stdio: 'pipe' },
+      );
       return true;
     } catch {
       return false;
@@ -66,16 +76,22 @@ class GitHubSync {
       const data = JSON.stringify({
         name: this.repoName,
         private: true,
-        description: 'Claude Code memory storage - persistent context across sessions',
-        auto_init: true
+        description:
+          'Claude Code memory storage - persistent context across sessions',
+        auto_init: true,
       });
 
-      execSync(`gh api user/repos --method POST --input - --header "Authorization: Bearer ${token}"`, {
-        input: data,
-        stdio: 'pipe'
-      });
+      execSync(
+        `gh api user/repos --method POST --input - --header "Authorization: Bearer ${token}"`,
+        {
+          input: data,
+          stdio: 'pipe',
+        },
+      );
 
-      console.log(`Created private repository: ${this.repoOwner}/${this.repoName}`);
+      console.log(
+        `Created private repository: ${this.repoOwner}/${this.repoName}`,
+      );
       return true;
     } catch (err) {
       console.error('Failed to create repository:', err.message);
@@ -108,7 +124,7 @@ class GitHubSync {
       this.syncDir,
       'memories',
       memory.container_tag,
-      yearMonth
+      yearMonth,
     );
 
     if (!fs.existsSync(memoryDir)) {
@@ -122,9 +138,12 @@ class GitHubSync {
       id: memory.id,
       content: memory.content,
       containerTag: memory.container_tag,
-      metadata: typeof memory.metadata === 'string' ? JSON.parse(memory.metadata) : memory.metadata,
+      metadata:
+        typeof memory.metadata === 'string'
+          ? JSON.parse(memory.metadata)
+          : memory.metadata,
       createdAt: memory.created_at,
-      updatedAt: memory.updated_at
+      updatedAt: memory.updated_at,
     };
 
     fs.writeFileSync(filepath, JSON.stringify(data, null, 2));
@@ -175,7 +194,7 @@ class GitHubSync {
       }
 
       // Git commit
-      const containerTags = [...new Set(memories.map(m => m.container_tag))];
+      const containerTags = [...new Set(memories.map((m) => m.container_tag))];
       const message = `Session memories: ${containerTags.join(', ')} (${memories.length} new)`;
       await this.git.commit(message);
 
@@ -229,7 +248,7 @@ class GitHubSync {
               created_at: data.createdAt,
               updated_at: data.updatedAt,
               sync_status: 'synced',
-              synced_at: Date.now()
+              synced_at: Date.now(),
             });
           } catch (err) {
             console.error(`Failed to parse ${fullPath}:`, err.message);
@@ -243,7 +262,11 @@ class GitHubSync {
   }
 
   importProfiles() {
-    const profileFile = path.join(this.syncDir, 'profiles', 'user-preferences.json');
+    const profileFile = path.join(
+      this.syncDir,
+      'profiles',
+      'user-preferences.json',
+    );
     if (!fs.existsSync(profileFile)) {
       return { static: [], dynamic: [] };
     }

@@ -23,7 +23,7 @@ async function main() {
     debugLog(settings, 'Stop', {
       cwd,
       containerTag,
-      turns: transcript.length
+      turns: transcript.length,
     });
 
     const client = new StorageClient();
@@ -38,13 +38,15 @@ async function main() {
       {
         sm_source: 'claude-code-plugin',
         sessionId,
-        turns: transcript.length
+        turns: transcript.length,
       },
-      sessionId
+      sessionId,
     );
 
     // Sync to GitHub
-    const syncResult = await client.syncToGitHub().catch(() => ({ success: false }));
+    const syncResult = await client
+      .syncToGitHub()
+      .catch(() => ({ success: false }));
 
     if (syncResult.success) {
       debugLog(settings, 'Synced to GitHub', { count: syncResult.synced });

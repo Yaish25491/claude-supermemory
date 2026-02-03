@@ -1,7 +1,7 @@
 const { SqliteManager } = require('./sqlite-manager');
 const { GitHubSync } = require('./github-sync');
 const { GitHubAuth } = require('./github-auth');
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 
 class StorageClient {
   constructor(dbPath = null) {
@@ -28,16 +28,20 @@ class StorageClient {
   }
 
   async search(query, containerTag = null, options = {}) {
-    const results = this.db.searchMemories(query, containerTag, options.limit || 10);
+    const results = this.db.searchMemories(
+      query,
+      containerTag,
+      options.limit || 10,
+    );
     return {
-      results: results.map(r => ({
+      results: results.map((r) => ({
         id: r.id,
         memory: r.content,
         content: r.content,
         similarity: r.relevance_score || 0.5,
-        title: r.metadata?.title || null
+        title: r.metadata?.title || null,
       })),
-      total: results.length
+      total: results.length,
     };
   }
 
@@ -48,23 +52,23 @@ class StorageClient {
     if (query) {
       const results = this.db.searchMemories(query, containerTag, 10);
       searchResults = {
-        results: results.map(r => ({
+        results: results.map((r) => ({
           id: r.id,
           memory: r.content,
           content: r.content,
           similarity: r.relevance_score || 0.5,
-          title: r.metadata?.title || null
+          title: r.metadata?.title || null,
         })),
-        total: results.length
+        total: results.length,
       };
     }
 
     return {
       profile: {
         static: profile.static,
-        dynamic: profile.dynamic
+        dynamic: profile.dynamic,
       },
-      searchResults
+      searchResults,
     };
   }
 
@@ -94,7 +98,7 @@ class StorageClient {
     const result = await this.sync.syncToGitHub(pending);
 
     if (result.success) {
-      const ids = pending.map(m => m.id);
+      const ids = pending.map((m) => m.id);
       this.db.markSynced(ids);
     }
 
@@ -124,7 +128,7 @@ class StorageClient {
           memory.id,
           memory.content,
           memory.container_tag,
-          JSON.parse(memory.metadata)
+          JSON.parse(memory.metadata),
         );
       }
     }

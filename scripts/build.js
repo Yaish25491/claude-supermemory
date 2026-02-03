@@ -16,10 +16,7 @@ const hooks = [
   'add-memory',
 ];
 
-const commands = [
-  'commands/sync',
-  'commands/status',
-];
+const commands = ['commands/sync', 'commands/status'];
 
 async function build() {
   console.log('Building scripts...\n');
@@ -27,8 +24,8 @@ async function build() {
   fs.mkdirSync(OUT, { recursive: true });
 
   const allFiles = [
-    ...hooks.map(h => ({ name: h, path: h })),
-    ...commands.map(c => ({ name: c.split('/')[1], path: c })),
+    ...hooks.map((h) => ({ name: h, path: h })),
+    ...commands.map((c) => ({ name: c.split('/')[1], path: c })),
   ];
 
   for (const { name, path: filePath } of allFiles) {

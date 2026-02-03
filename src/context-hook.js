@@ -18,7 +18,9 @@ async function main() {
     const client = new StorageClient();
 
     // Sync from GitHub (non-blocking, best effort)
-    const syncResult = await client.syncFromGitHub().catch(() => ({ success: false }));
+    const syncResult = await client
+      .syncFromGitHub()
+      .catch(() => ({ success: false }));
     if (!syncResult.success) {
       debugLog(settings, 'GitHub sync unavailable, working offline');
     }
@@ -31,7 +33,7 @@ async function main() {
       profileResult,
       true,
       false,
-      settings.maxProfileItems || 5
+      settings.maxProfileItems || 5,
     );
 
     if (!additionalContext) {
@@ -42,24 +44,26 @@ async function main() {
 No previous memories found for this project.
 Memories will be saved as you work.
 ${syncResult.success ? '' : '⚠ GitHub sync unavailable - working offline'}
-</supermemory-context>`
-        }
+</supermemory-context>`,
+        },
       });
       client.close();
       return;
     }
 
     debugLog(settings, 'Context generated', {
-      length: additionalContext.length
+      length: additionalContext.length,
     });
 
-    const statusNote = syncResult.success ? '' : '\n⚠ GitHub sync unavailable - working offline';
+    const statusNote = syncResult.success
+      ? ''
+      : '\n⚠ GitHub sync unavailable - working offline';
 
     writeOutput({
       hookSpecificOutput: {
         hookEventName: 'SessionStart',
-        additionalContext: additionalContext + statusNote
-      }
+        additionalContext: additionalContext + statusNote,
+      },
     });
 
     client.close();
@@ -72,8 +76,8 @@ ${syncResult.success ? '' : '⚠ GitHub sync unavailable - working offline'}
         additionalContext: `<supermemory-status>
 Failed to load memories: ${err.message}
 Session will continue without memory context.
-</supermemory-status>`
-      }
+</supermemory-status>`,
+      },
     });
   }
 }

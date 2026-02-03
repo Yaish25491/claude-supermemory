@@ -1,9 +1,13 @@
-const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
-const os = require('os');
+const { execSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+const os = require('node:os');
 
-const TOKEN_FILE = path.join(os.homedir(), '.claude-memory', 'github-token.json');
+const TOKEN_FILE = path.join(
+  os.homedir(),
+  '.claude-memory',
+  'github-token.json',
+);
 
 class GitHubAuth {
   constructor() {
@@ -41,7 +45,9 @@ class GitHubAuth {
       return data.token;
     }
 
-    throw new Error('No GitHub authentication found. Please authenticate with gh CLI or set CLAUDE_MEMORY_GITHUB_TOKEN');
+    throw new Error(
+      'No GitHub authentication found. Please authenticate with gh CLI or set CLAUDE_MEMORY_GITHUB_TOKEN',
+    );
   }
 
   saveToken(token) {
@@ -53,18 +59,20 @@ class GitHubAuth {
   }
 
   isAuthenticated() {
-    return this.ghAvailable ||
-           process.env.CLAUDE_MEMORY_GITHUB_TOKEN ||
-           fs.existsSync(TOKEN_FILE);
+    return (
+      this.ghAvailable ||
+      process.env.CLAUDE_MEMORY_GITHUB_TOKEN ||
+      fs.existsSync(TOKEN_FILE)
+    );
   }
 
   async initiateDeviceFlow() {
-    const https = require('https');
+    const https = require('node:https');
 
     return new Promise((resolve, reject) => {
       const data = JSON.stringify({
         client_id: 'Ov23liXXXXXXXXXXXXXX', // TODO: Register GitHub OAuth App
-        scope: 'repo'
+        scope: 'repo',
       });
 
       const options = {
@@ -75,13 +83,15 @@ class GitHubAuth {
         headers: {
           'Content-Type': 'application/json',
           'Content-Length': data.length,
-          'Accept': 'application/json'
-        }
+          Accept: 'application/json',
+        },
       };
 
       const req = https.request(options, (res) => {
         let body = '';
-        res.on('data', chunk => body += chunk);
+        res.on('data', (chunk) => {
+          body += chunk;
+        });
         res.on('end', () => resolve(JSON.parse(body)));
       });
 
@@ -92,52 +102,55 @@ class GitHubAuth {
   }
 
   async pollForToken(deviceCode, interval = 5) {
-    const https = require('https');
+    const https = require('node:https');
 
-    const poll = () => new Promise((resolve, reject) => {
-      const data = JSON.stringify({
-        client_id: 'Ov23liXXXXXXXXXXXXXX', // TODO: Same as above
-        device_code: deviceCode,
-        grant_type: 'urn:ietf:params:oauth:grant-type:device_code'
-      });
-
-      const options = {
-        hostname: 'github.com',
-        port: 443,
-        path: '/login/oauth/access_token',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Content-Length': data.length,
-          'Accept': 'application/json'
-        }
-      };
-
-      const req = https.request(options, (res) => {
-        let body = '';
-        res.on('data', chunk => body += chunk);
-        res.on('end', () => {
-          const result = JSON.parse(body);
-          if (result.access_token) {
-            resolve(result.access_token);
-          } else if (result.error === 'authorization_pending') {
-            resolve(null);
-          } else {
-            reject(new Error(result.error || 'Unknown error'));
-          }
+    const poll = () =>
+      new Promise((resolve, reject) => {
+        const data = JSON.stringify({
+          client_id: 'Ov23liXXXXXXXXXXXXXX', // TODO: Same as above
+          device_code: deviceCode,
+          grant_type: 'urn:ietf:params:oauth:grant-type:device_code',
         });
-      });
 
-      req.on('error', reject);
-      req.write(data);
-      req.end();
-    });
+        const options = {
+          hostname: 'github.com',
+          port: 443,
+          path: '/login/oauth/access_token',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': data.length,
+            Accept: 'application/json',
+          },
+        };
+
+        const req = https.request(options, (res) => {
+          let body = '';
+          res.on('data', (chunk) => {
+            body += chunk;
+          });
+          res.on('end', () => {
+            const result = JSON.parse(body);
+            if (result.access_token) {
+              resolve(result.access_token);
+            } else if (result.error === 'authorization_pending') {
+              resolve(null);
+            } else {
+              reject(new Error(result.error || 'Unknown error'));
+            }
+          });
+        });
+
+        req.on('error', reject);
+        req.write(data);
+        req.end();
+      });
 
     // Poll up to 10 minutes
     for (let i = 0; i < 120; i++) {
       const token = await poll();
       if (token) return token;
-      await new Promise(resolve => setTimeout(resolve, interval * 1000));
+      await new Promise((resolve) => setTimeout(resolve, interval * 1000));
     }
 
     throw new Error('Device flow timed out');

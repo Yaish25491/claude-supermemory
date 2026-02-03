@@ -6,11 +6,13 @@ async function main() {
   const content = process.argv.slice(2).join(' ');
 
   if (!content || !content.trim()) {
-    console.log('No content provided. Usage: node add-memory.cjs "content to save"');
+    console.log(
+      'No content provided. Usage: node add-memory.cjs "content to save"',
+    );
     return;
   }
 
-  const settings = loadSettings();
+  const _settings = loadSettings();
   const cwd = process.cwd();
   const containerTag = getContainerTag(cwd);
   const projectName = getProjectName(cwd);

@@ -6,7 +6,7 @@ echo "=== Claude Memory Integration Test ==="
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Cleanup
-rm -rf /tmp/claude-memory-test
+rm -rf /tmp/claude-memory-test /tmp/test-integration.db
 mkdir -p /tmp/claude-memory-test
 
 echo "1. Testing SQLite database creation..."

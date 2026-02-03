@@ -1,7 +1,7 @@
 const Database = require('better-sqlite3');
-const path = require('path');
-const fs = require('fs');
-const os = require('os');
+const path = require('node:path');
+const fs = require('node:fs');
+const os = require('node:os');
 
 const DEFAULT_DB_DIR = path.join(os.homedir(), '.claude-memory');
 const DEFAULT_DB_PATH = path.join(DEFAULT_DB_DIR, 'memories.db');
@@ -93,7 +93,7 @@ class SqliteManager {
   getMemory(id) {
     const stmt = this.db.prepare('SELECT * FROM memories WHERE id = ?');
     const row = stmt.get(id);
-    if (row && row.metadata) {
+    if (row?.metadata) {
       row.metadata = JSON.parse(row.metadata);
     }
     return row;
@@ -110,7 +110,9 @@ class SqliteManager {
     }
 
     params.push(id);
-    const stmt = this.db.prepare(`UPDATE memories SET ${updates.join(', ')} WHERE id = ?`);
+    const stmt = this.db.prepare(
+      `UPDATE memories SET ${updates.join(', ')} WHERE id = ?`,
+    );
     stmt.run(...params);
   }
 
@@ -127,16 +129,18 @@ class SqliteManager {
       LIMIT ?
     `);
     const rows = stmt.all(containerTag, limit);
-    return rows.map(row => {
+    return rows.map((row) => {
       if (row.metadata) row.metadata = JSON.parse(row.metadata);
       return row;
     });
   }
 
   getPendingSync() {
-    const stmt = this.db.prepare(`SELECT * FROM memories WHERE sync_status = 'pending'`);
+    const stmt = this.db.prepare(
+      `SELECT * FROM memories WHERE sync_status = 'pending'`,
+    );
     const rows = stmt.all();
-    return rows.map(row => {
+    return rows.map((row) => {
       if (row.metadata) row.metadata = JSON.parse(row.metadata);
       return row;
     });
@@ -172,7 +176,7 @@ class SqliteManager {
 
     const stmt = this.db.prepare(sql);
     const rows = stmt.all(...params);
-    return rows.map(row => {
+    return rows.map((row) => {
       if (row.metadata) row.metadata = JSON.parse(row.metadata);
       return row;
     });
@@ -197,10 +201,14 @@ class SqliteManager {
       ORDER BY rank
       LIMIT ?
     `);
-    const relevant = searchStmt.all(projectName, containerTag, Math.floor(limit / 2));
+    const relevant = searchStmt.all(
+      projectName,
+      containerTag,
+      Math.floor(limit / 2),
+    );
 
     // Combine and dedupe
-    const seen = new Set(recent.map(r => r.id));
+    const seen = new Set(recent.map((r) => r.id));
     const combined = [...recent];
     for (const mem of relevant) {
       if (!seen.has(mem.id)) {
@@ -209,7 +217,7 @@ class SqliteManager {
       }
     }
 
-    return combined.slice(0, limit).map(row => {
+    return combined.slice(0, limit).map((row) => {
       if (row.metadata) row.metadata = JSON.parse(row.metadata);
       return row;
     });
@@ -242,8 +250,8 @@ class SqliteManager {
     const dynamicFacts = dynamicStmt.all(containerTag, maxItems);
 
     return {
-      static: staticFacts.map(r => r.fact),
-      dynamic: dynamicFacts.map(r => r.fact)
+      static: staticFacts.map((r) => r.fact),
+      dynamic: dynamicFacts.map((r) => r.fact),
     };
   }
 

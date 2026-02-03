@@ -1,6 +1,5 @@
 const { StorageClient } = require('../lib/storage-client');
 const { GitHubAuth } = require('../lib/github-auth');
-const { SqliteManager } = require('../lib/sqlite-manager');
 
 async function main() {
   try {
@@ -16,7 +15,9 @@ async function main() {
     const pending = client.db.getPendingSync().length;
 
     // Last sync time
-    const lastSyncStmt = db.db.prepare('SELECT MAX(synced_at) as last_sync FROM memories WHERE synced_at IS NOT NULL');
+    const lastSyncStmt = db.db.prepare(
+      'SELECT MAX(synced_at) as last_sync FROM memories WHERE synced_at IS NOT NULL',
+    );
     const lastSync = lastSyncStmt.get().last_sync;
 
     console.log('## Claude Memory Status\n');

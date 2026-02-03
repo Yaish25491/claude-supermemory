@@ -6,11 +6,13 @@ async function main() {
   const query = process.argv.slice(2).join(' ');
 
   if (!query || !query.trim()) {
-    console.log('No search query provided. Please specify what you want to search for.');
+    console.log(
+      'No search query provided. Please specify what you want to search for.',
+    );
     return;
   }
 
-  const settings = loadSettings();
+  const _settings = loadSettings();
   const cwd = process.cwd();
   const containerTag = getContainerTag(cwd);
   const projectName = getProjectName(cwd);
@@ -45,7 +47,9 @@ async function main() {
         console.log(content.slice(0, 500));
       });
     } else {
-      const searchResult = await client.search(query, containerTag, { limit: 10 });
+      const searchResult = await client.search(query, containerTag, {
+        limit: 10,
+      });
       if (searchResult.results?.length > 0) {
         console.log('### Relevant Memories');
         searchResult.results.forEach((mem, i) => {
@@ -57,7 +61,9 @@ async function main() {
         });
       } else {
         console.log('No memories found matching your query.');
-        console.log('Memories are automatically saved as you work in this project.');
+        console.log(
+          'Memories are automatically saved as you work in this project.',
+        );
       }
     }
 
