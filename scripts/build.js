@@ -43,6 +43,7 @@ async function build() {
         minify: true,
         banner: { js: '#!/usr/bin/env node' },
         loader: { '.html': 'text' },
+        external: ['better-sqlite3'],
       });
 
       fs.chmodSync(out, 0o755);
