@@ -16,14 +16,21 @@ const hooks = [
   'add-memory',
 ];
 
+const commands = ['commands/sync', 'commands/status'];
+
 async function build() {
-  console.log('Building hooks...\n');
+  console.log('Building scripts...\n');
 
   fs.mkdirSync(OUT, { recursive: true });
 
-  for (const hook of hooks) {
-    const entry = path.join(SRC, `${hook}.js`);
-    const out = path.join(OUT, `${hook}.cjs`);
+  const allFiles = [
+    ...hooks.map((h) => ({ name: h, path: h })),
+    ...commands.map((c) => ({ name: c.split('/')[1], path: c })),
+  ];
+
+  for (const { name, path: filePath } of allFiles) {
+    const entry = path.join(SRC, `${filePath}.js`);
+    const out = path.join(OUT, `${name}.cjs`);
 
     try {
       await esbuild.build({
@@ -40,9 +47,9 @@ async function build() {
 
       fs.chmodSync(out, 0o755);
       const stats = fs.statSync(out);
-      console.log(`  ${hook}.cjs (${(stats.size / 1024).toFixed(1)} KB)`);
+      console.log(`  ${name}.cjs (${(stats.size / 1024).toFixed(1)} KB)`);
     } catch (err) {
-      console.error(`Failed to build ${hook}:`, err.message);
+      console.error(`Failed to build ${name}:`, err.message);
       process.exit(1);
     }
   }

@@ -1,108 +1,126 @@
-# Claude-Supermemory
+# Claude Memory
 
-<img width="1386" height="258" alt="Screenshot 2026-01-28 at 11 34 13 PM" src="https://github.com/user-attachments/assets/a692791a-a054-495a-ab53-45f1071ff26f" />
+A Claude Code plugin that gives your AI persistent memory across sessions using local SQLite storage with GitHub backup.
 
-> **✨ Requires [Supermemory Pro or above](https://console.supermemory.ai/billing)** - Unlock the state of the art memory for your OpenClaw bot.
-
-A Claude Code plugin that gives your AI persistent memory across sessions using [Supermemory](https://supermemory.ai).
-Your agent remembers what you worked on - across sessions, across projects.
-
+Your agent remembers what you worked on - across sessions, across projects, across machines.
 
 ## Features
 
-- **Context Injection**: On session start, relevant memories are automatically injected into Claude's context
-- **Automatic Capture**: Conversation turns are captured and stored for future context
-- **Codebase Indexing**: Index your project's architecture, patterns, and conventions
+- **Local-First Storage** - SQLite database for instant access, works offline
+- **Cloud Backup** - Automatic sync to private GitHub repository
+- **Full-Text Search** - Fast memory search with relevance ranking
+- **Context Injection** - Relevant memories automatically loaded on session start
+- **Multi-Device Sync** - Work across machines with conflict resolution
+- **No Subscription** - Free, open-source, no API costs
 
 ## Installation
 
 ```bash
-# Add the plugin marketplace
-/plugin marketplace add supermemoryai/claude-supermemory
+# Install from local directory
+/plugin install /path/to/claude-memory
 
-# Or from local directory
-/plugin marketplace add /path/to/claude-supermemory
-
-# Install the plugin
-/plugin install claude-supermemory
-
-# Set your API key
-export SUPERMEMORY_CC_API_KEY="sm_..."
+# Or add to marketplace
+/plugin marketplace add /path/to/claude-memory
+/plugin install claude-memory
 ```
 
-Get your API key at [console.supermemory.ai](https://console.supermemory.ai).
+**Prerequisites:**
+- GitHub CLI (`gh`) recommended - [Install gh](https://cli.github.com/)
+- Or set `CLAUDE_MEMORY_GITHUB_TOKEN` environment variable
 
-## How It Works
+## First-Time Setup
 
-### On Session Start
+On first run, the plugin will:
+1. Create local SQLite database at `~/.claude-memory/memories.db`
+2. Prompt to create private GitHub repository for cloud backup
+3. Authenticate with GitHub (via `gh` CLI or OAuth)
 
-The plugin fetches relevant memories from Supermemory and injects them into Claude's context:
-
-```
-<supermemory-context>
-The following is recalled context about the user...
-
-## User Profile (Persistent)
-- Prefers TypeScript over JavaScript
-- Uses Bun as package manager
-
-## Recent Context
-- Working on authentication flow
-
-</supermemory-context>
-```
-
-### During Session
-
-Conversation turns are automatically captured on each stop and stored for future context.
-
-### Skills
-
-**super-search**: When you ask about past work, previous sessions, or want to recall information, the agent automatically searches your memories.
+That's it! Memories will now be saved locally and synced to GitHub.
 
 ## Commands
 
-### /claude-supermemory:index
+### /claude-memory:index
+Index your codebase into memory storage.
 
-Index your codebase into Supermemory. Explores project structure, architecture, conventions, and key files.
+### /claude-memory:sync
+Force immediate sync to GitHub (normally auto-syncs on session end).
 
-```
-/claude-supermemory:index
-```
-
-### /claude-supermemory:logout
-
-Log out from Supermemory and clear saved credentials.
-
-```
-/claude-supermemory:logout
-```
+### /claude-memory:status
+Show memory storage and sync status.
 
 ## Configuration
 
 ### Environment Variables
 
 ```bash
-# Required
-SUPERMEMORY_CC_API_KEY=sm_...
+# Optional: Custom GitHub repo (default: auto-creates claude-memory-storage)
+CLAUDE_MEMORY_REPO=username/custom-repo
 
-# Optional
-SUPERMEMORY_SKIP_TOOLS=Read,Glob,Grep    # Tools to not capture
-SUPERMEMORY_DEBUG=true                    # Enable debug logging
+# Optional: GitHub PAT for manual auth
+CLAUDE_MEMORY_GITHUB_TOKEN=ghp_...
+
+# Optional: Storage location
+CLAUDE_MEMORY_DIR=/custom/path
+
+# Optional: Debug logging
+CLAUDE_MEMORY_DEBUG=true
 ```
 
 ### Settings File
 
-Create `~/.supermemory-claude/settings.json`:
+`~/.claude-memory/settings.json`:
 
 ```json
 {
-  "skipTools": ["Read", "Glob", "Grep", "TodoWrite"],
+  "skipTools": ["Read", "Glob", "Grep"],
   "captureTools": ["Edit", "Write", "Bash", "Task"],
   "maxProfileItems": 5,
   "debug": false
 }
 ```
+
+## How It Works
+
+### Session Start
+- Plugin syncs from GitHub (pulls latest memories)
+- Searches for relevant memories based on project context
+- Injects memories into Claude's context
+
+### During Session
+- Conversation transcript is captured
+- Important actions and decisions are noted
+
+### Session End
+- Transcript is compressed and saved to local SQLite
+- Automatically syncs to GitHub
+- Memories organized by project and date
+
+### Offline Mode
+- Works completely offline with local SQLite
+- Syncs when connection is restored
+- Graceful degradation if GitHub unavailable
+
+## Storage Structure
+
+### Local Database
+```
+~/.claude-memory/
+├── memories.db          # SQLite database with FTS5 search
+└── repo/               # Git repository for GitHub sync
+    ├── memories/       # Memory JSON files
+    │   └── project-name/
+    │       └── 2026-02/
+    │           └── 02-session_123.json
+    └── profiles/       # User preferences
+        └── user-preferences.json
+```
+
+### GitHub Repository
+Private repository with organized memory storage:
+- `memories/` - Session transcripts organized by project/date
+- `profiles/` - User preferences and static facts
+- Searchable history via git log
+- Cross-device sync via git pull/push
 
 ## License
 

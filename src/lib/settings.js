@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
-const { loadCredentials } = require('./auth');
 
 const SETTINGS_DIR = path.join(os.homedir(), '.supermemory-claude');
 const SETTINGS_FILE = path.join(SETTINGS_DIR, 'settings.json');
@@ -52,9 +51,7 @@ function getApiKey(settings) {
   if (process.env.SUPERMEMORY_CC_API_KEY)
     return process.env.SUPERMEMORY_CC_API_KEY;
 
-  const credentials = loadCredentials();
-  if (credentials?.apiKey) return credentials.apiKey;
-
+  // Note: No longer required for local storage
   throw new Error('NO_API_KEY');
 }
 

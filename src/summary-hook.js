@@ -1,67 +1,69 @@
-const { SupermemoryClient } = require('./lib/supermemory-client');
-const { getContainerTag, getProjectName } = require('./lib/container-tag');
-const { loadSettings, getApiKey, debugLog } = require('./lib/settings');
+const { StorageClient } = require('./lib/storage-client');
+const { getContainerTag } = require('./lib/container-tag');
+const { loadSettings, debugLog } = require('./lib/settings');
 const { readStdin, writeOutput } = require('./lib/stdin');
-const { formatNewEntries } = require('./lib/transcript-formatter');
+const { compressTranscript } = require('./lib/compress');
 
 async function main() {
   const settings = loadSettings();
 
   try {
     const input = await readStdin();
+    const transcript = input.transcript || [];
+
+    if (transcript.length === 0) {
+      debugLog(settings, 'No transcript to save');
+      writeOutput({});
+      return;
+    }
+
     const cwd = input.cwd || process.cwd();
-    const sessionId = input.session_id;
-    const transcriptPath = input.transcript_path;
-
-    debugLog(settings, 'Stop', { sessionId, transcriptPath });
-
-    if (!transcriptPath || !sessionId) {
-      debugLog(settings, 'Missing transcript path or session id');
-      writeOutput({ continue: true });
-      return;
-    }
-
-    let apiKey;
-    try {
-      apiKey = getApiKey(settings);
-    } catch {
-      writeOutput({ continue: true });
-      return;
-    }
-
-    const formatted = formatNewEntries(transcriptPath, sessionId);
-
-    if (!formatted) {
-      debugLog(settings, 'No new content to save');
-      writeOutput({ continue: true });
-      return;
-    }
-
-    const client = new SupermemoryClient(apiKey);
     const containerTag = getContainerTag(cwd);
-    const projectName = getProjectName(cwd);
+
+    debugLog(settings, 'Stop', {
+      cwd,
+      containerTag,
+      turns: transcript.length,
+    });
+
+    const client = new StorageClient();
+
+    // Compress and save transcript
+    const summary = compressTranscript(transcript, settings);
+    const sessionId = `session_${Date.now()}`;
 
     await client.addMemory(
-      formatted,
+      summary,
       containerTag,
       {
-        type: 'session_turn',
-        project: projectName,
-        timestamp: new Date().toISOString(),
+        sm_source: 'claude-code-plugin',
+        sessionId,
+        turns: transcript.length,
       },
       sessionId,
     );
 
-    debugLog(settings, 'Session turn saved', { length: formatted.length });
-    writeOutput({ continue: true });
+    // Sync to GitHub
+    const syncResult = await client
+      .syncToGitHub()
+      .catch(() => ({ success: false }));
+
+    if (syncResult.success) {
+      debugLog(settings, 'Synced to GitHub', { count: syncResult.synced });
+    } else {
+      debugLog(settings, 'GitHub sync failed, will retry later');
+    }
+
+    client.close();
+    writeOutput({});
   } catch (err) {
     debugLog(settings, 'Error', { error: err.message });
-    console.error(`Supermemory: ${err.message}`);
-    writeOutput({ continue: true });
+    console.error(`Claude Memory: ${err.message}`);
+    writeOutput({});
   }
 }
 
 main().catch((err) => {
-  console.error(`Supermemory fatal: ${err.message}`);
+  console.error(`Claude Memory fatal: ${err.message}`);
   process.exit(1);
 });

@@ -88,7 +88,7 @@ function formatContext(
 
   if (dynamics.length > 0) {
     sections.push(
-      '## Recent Context\n' + dynamics.map((f) => `- ${f}`).join('\n'),
+      `## Recent Context\n${dynamics.map((f) => `- ${f}`).join('\n')}`,
     );
   }
 
@@ -102,7 +102,7 @@ function formatContext(
       return `- ${prefix}${memory} ${pct}`.trim();
     });
     sections.push(
-      '## Relevant Memories (with relevance %)\n' + lines.join('\n'),
+      `## Relevant Memories (with relevance %)\n${lines.join('\n')}`,
     );
   }
 
