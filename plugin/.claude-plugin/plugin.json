@@ -1,9 +1,9 @@
 {
-  "name": "claude-supermemory",
-  "version": "0.0.1",
-  "description": "Persistent memory across Claude Code sessions using Supermemory",
+  "name": "claude-memory",
+  "version": "2.0.0",
+  "description": "Local + GitHub memory storage for Claude Code",
   "author": {
-    "name": "Supermemory",
-    "email": "support@supermemory.ai"
+    "name": "Yaish",
+    "email": "hyaish@redhat.com"
   }
 }
