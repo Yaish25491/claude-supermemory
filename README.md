@@ -16,12 +16,14 @@ Your agent remembers what you worked on - across sessions, across projects, acro
 ## Installation
 
 ```bash
-# Install from local directory
-/plugin install /path/to/claude-memory
+# Add the plugin directory as a marketplace
+/plugin marketplace add /path/to/claude-supermemory
 
-# Or add to marketplace
-/plugin marketplace add /path/to/claude-memory
+# Install the plugin
 /plugin install claude-memory
+
+# Verify installation
+/plugin list
 ```
 
 **Prerequisites:**
