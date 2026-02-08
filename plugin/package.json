@@ -6,6 +6,10 @@
   "engines": {
     "node": ">=18.0.0"
   },
+  "dependencies": {
+    "better-sqlite3": "^11.0.0",
+    "simple-git": "^3.25.0"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/Yaish25491/claude-supermemory"
